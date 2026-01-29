@@ -1,4 +1,4 @@
-## 📡 API Documentation
+## API Documentation
 
 **Base URL:** `http://localhost:5000/api`
 
@@ -389,7 +389,7 @@ Response (200 OK):
 | **Authentication** | 2 | Register, Login |
 | **Accounts** | 7 | CRUD + 2 Aggregations |
 | **Transactions** | 9 | CRUD + 2 Aggregations + Tags |
-| **TOTAL** | **18** | ✅ Exceeds requirement (12+ for 2 students) |
+| **TOTAL** | **18** | Exceeds requirement (12+ for 2 students) |
 
 ---
 
@@ -620,11 +620,11 @@ await Transaction.find({ userId }).lean();
 
 ---
 
-## 🎓 MongoDB Features Implemented
+## MongoDB Features Implemented
 
 This section demonstrates advanced MongoDB knowledge and implementation.
 
-### ✅ 1. CRUD Operations (8/8 points)
+### 1. CRUD Operations (8/8 points)
 
 **Create:**
 - User registration
@@ -675,7 +675,7 @@ await Account.findByIdAndDelete(id);
 
 ---
 
-### ✅ 2. Data Modeling (8/8 points)
+### 2. Data Modeling (8/8 points)
 
 **Embedding:**
 ```javascript
@@ -707,7 +707,7 @@ await Transaction.findOne({ _id })
 
 ---
 
-### ✅ 3. Advanced Update/Delete Operators (8/8 points)
+### 3. Advanced Update/Delete Operators (8/8 points)
 
 #### $inc (Increment/Decrement)
 **Use Case:** Update account balance automatically with transactions
@@ -779,7 +779,7 @@ await Account.findByIdAndDelete(id);
 
 ---
 
-### ✅ 4. Aggregation Framework (10/10 points)
+### 4. Aggregation Framework (10/10 points)
 
 #### Aggregation Pipeline #1: Category Statistics
 
@@ -1022,7 +1022,7 @@ Account.aggregate([
 
 ---
 
-### ✅ 5. Indexes & Optimization (6/6 points)
+### 5. Indexes & Optimization (6/6 points)
 
 #### Compound Index Implementation
 ```javascript
@@ -1062,7 +1062,7 @@ db.transactions.find({ userId: "..." }).sort({ date: -1 }).explain()
 
 ---
 
-## 🔒 Security Implementation
+## Security Implementation
 
 ### Authentication Strategy
 
@@ -1310,19 +1310,19 @@ Headers: Authorization: Bearer {{token}}
 
 ---
 
-## 👥 Team Contribution
+## Team Contribution
 
 ### Student 1: [Ernar]
 **Role:** Backend Developer & Database Architect
 
 **Responsibilities:**
-- ✅ MongoDB database design and schema creation
-- ✅ Backend API development (all 18 endpoints)
-- ✅ Implementation of aggregation pipelines
-- ✅ JWT authentication and authorization
-- ✅ Advanced MongoDB operators ($inc, $push, $pull)
-- ✅ Backend testing and debugging
-- ✅ Documentation (README, API docs)
+- MongoDB database design and schema creation
+- Backend API development (all 18 endpoints)
+- Implementation of aggregation pipelines
+- JWT authentication and authorization
+- Advanced MongoDB operators ($inc, $push, $pull)
+- Backend testing and debugging
+- Documentation (README, API docs)
 
 **Key Achievements:**
 - Designed efficient database schema with proper relationships
@@ -1337,13 +1337,13 @@ Headers: Authorization: Bearer {{token}}
 **Role:** Frontend Developer & UI/UX Designer
 
 **Responsibilities:**
-- ✅ Frontend development (6 pages)
-- ✅ UI/UX design (modern minimalist theme)
-- ✅ API integration with backend
-- ✅ Client-side authentication handling
-- ✅ Form validation and error handling
-- ✅ Responsive design implementation
-- ✅ User experience testing
+- Frontend development (6 pages)
+- UI/UX design (modern minimalist theme)
+- API integration with backend
+- Client-side authentication handling
+- Form validation and error handling
+- Responsive design implementation
+- User experience testing
 
 **Key Achievements:**
 - Created clean, professional user interface
@@ -1374,7 +1374,7 @@ main (production branch)
 - Integration testing together
 
 ---
-## 🎓 Final Notes
+## Final Notes
 
 This project represents our understanding and application of advanced database concepts, specifically NoSQL databases with MongoDB. We've implemented a real-world application that demonstrates:
 
@@ -1385,10 +1385,6 @@ This project represents our understanding and application of advanced database c
 - **Complete documentation** for future reference
 
 We're proud of what we've built and hope this project showcases our technical skills and understanding of modern web development with NoSQL databases.
-
----
-
-**Made with ❤️ and ☕ by the Pennywise Team**
 
 ---
 
