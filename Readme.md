@@ -1,4 +1,4 @@
-# 💰 Pennywise - Personal Finance Management System
+# Pennywise - Personal Finance Management System
 
 A full-stack web application for managing personal finances, tracking expenses, and analyzing spending patterns built with MongoDB, Express.js, and Vanilla JavaScript.
 
@@ -7,15 +7,15 @@ A full-stack web application for managing personal finances, tracking expenses, 
 
 ---
 
-## 🎯 Overview
+## Overview
 
 Pennywise is a comprehensive personal finance management system that empowers users to take control of their financial life through:
 
-- 💳 **Multi-Account Management** - Track balances across cards, cash, and savings
-- 💸 **Smart Transaction Tracking** - Record and categorize every income and expense
-- 📊 **Powerful Analytics** - Visualize spending patterns with advanced aggregations
-- 🔐 **Secure Authentication** - JWT-based security with encrypted passwords
-- 📱 **Responsive Design** - Works seamlessly on desktop and mobile devices
+- **Multi-Account Management** - Track balances across cards, cash, and savings
+- **Smart Transaction Tracking** - Record and categorize every income and expense
+- **Powerful Analytics** - Visualize spending patterns with advanced aggregations
+- **Secure Authentication** - JWT-based security with encrypted passwords
+- **Responsive Design** - Works seamlessly on desktop and mobile devices
 
 ### Key Highlights
 - **18 REST API Endpoints** with full CRUD operations
@@ -26,15 +26,15 @@ Pennywise is a comprehensive personal finance management system that empowers us
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔐 User Management
+### User Management
 - **Registration & Login** with JWT authentication
 - **Secure Password Storage** using bcrypt hashing (10 salt rounds)
 - **Session Management** with token-based authorization
 - **Protected Routes** with middleware authentication
 
-### 💳 Account Management
+### Account Management
 - **Multiple Account Types:**
   - Checking accounts (Текущий счет)
   - Savings accounts (Сберегательный)
@@ -44,7 +44,7 @@ Pennywise is a comprehensive personal finance management system that empowers us
 - **CRUD Operations** - Create, Read, Update, Delete accounts
 - **Account Statistics** - View balance distribution by type
 
-### 💸 Transaction Management
+### Transaction Management
 - **Income & Expense Tracking** with detailed categorization
 - **Flexible Tagging System** - Add/remove tags dynamically
 - **Smart Filtering** - Filter by type, category, date range
@@ -52,7 +52,7 @@ Pennywise is a comprehensive personal finance management system that empowers us
 - **Transaction History** - View complete transaction timeline
 - **Edit & Delete** - Full control over past transactions
 
-### 📊 Advanced Analytics
+### Advanced Analytics
 Four powerful aggregation pipelines provide deep insights:
 
 1. **Category Statistics**
@@ -75,7 +75,7 @@ Four powerful aggregation pipelines provide deep insights:
    - Balance breakdown by account type
    - Transaction patterns per type
 
-### 🎨 User Interface
+### User Interface
 - **Modern Minimalist Design** - Clean, professional appearance
 - **Intuitive Navigation** - Easy access to all features
 - **Responsive Layout** - Adapts to any screen size
@@ -85,7 +85,7 @@ Four powerful aggregation pipelines provide deep insights:
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Backend
 | Technology | Version | Purpose |
@@ -120,7 +120,7 @@ Four powerful aggregation pipelines provide deep insights:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 NOSQLFINAL/
@@ -197,16 +197,16 @@ NOSQLFINAL/
 
 ---
 
-## 🚀 Installation Guide
+## Installation Guide
 
 ### Prerequisites
 
 Before starting, ensure you have:
 
-- ✅ **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
-- ✅ **MongoDB** (v4.4 or higher) - [Download](https://www.mongodb.com/try/download/community)
-- ✅ **Git** - [Download](https://git-scm.com/downloads)
-- ✅ **Code Editor** (VS Code recommended) - [Download](https://code.visualstudio.com/)
+- **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
+- **MongoDB** (v4.4 or higher) - [Download](https://www.mongodb.com/try/download/community)
+- **Git** - [Download](https://git-scm.com/downloads)
+- **Code Editor** (VS Code recommended) - [Download](https://code.visualstudio.com/)
 
 ### Step-by-Step Installation
 
@@ -255,7 +255,7 @@ JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
 NODE_ENV=development
 ```
 
-⚠️ **IMPORTANT:** Never commit the `.env` file to Git! It's already in `.gitignore`.
+**IMPORTANT:** Never commit the `.env` file to Git! It's already in `.gitignore`.
 
 #### 4. Start MongoDB
 
@@ -300,9 +300,9 @@ npm start
 
 **Expected output:**
 ```
-✅ MongoDB Connected
-🚀 Server running on port 5000
-📍 http://localhost:5000
+MongoDB Connected
+Server running on port 5000
+http://localhost:5000
 ```
 
 **Test the server:**
