@@ -1223,7 +1223,7 @@ app.use((err, req, res, next) => {
 
 ---
 
-## 🧪 Testing Guide
+## Testing Guide
 
 ### Manual Testing with Postman
 
