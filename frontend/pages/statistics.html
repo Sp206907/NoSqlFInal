@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PennyWise - Статистика</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            PennyWise
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+            <li><a href="accounts.html" class="nav-link">Счета</a></li>
+            <li><a href="transactions.html" class="nav-link">Транзакции</a></li>
+            <li><a href="statistics.html" class="nav-link active">Статистика</a></li>
+            <li><span id="userName" style="color: var(--dark-color); font-weight: 600;">Пользователь</span></li>
+            <li><a href="#" id="logoutBtn" class="nav-link">Выход</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1 class="mb-3" style="color: white;">Статистика и аналитика</h1>
+
+        <!-- Date Range Filter -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex gap-2 align-center">
+                    <label style="font-weight: 600;">Период:</label>
+                    <input type="date" id="startDate" class="form-control" style="width: auto;">
+                    <span>—</span>
+                    <input type="date" id="endDate" class="form-control" style="width: auto;">
+                    <button class="btn btn-primary" onclick="loadStatistics()">Применить</button>
+                    <button class="btn btn-secondary" onclick="setDefaultDates()">Последние 30 дней</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats-grid">
+            <div class="stat-card income">
+                <h3>Общий доход</h3>
+                <div class="value" id="totalIncome">₽0.00</div>
+            </div>
+            <div class="stat-card expense">
+                <h3>Общий расход</h3>
+                <div class="value" id="totalExpense">₽0.00</div>
+            </div>
+            <div class="stat-card">
+                <h3>Разница</h3>
+                <div class="value" id="netAmount">₽0.00</div>
+            </div>
+            <div class="stat-card">
+                <h3>Транзакций</h3>
+                <div class="value" id="transactionCount">0</div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <!-- Income vs Expense Chart -->
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: var(--dark-color);">Доходы vs Расходы</h3>
+                <canvas id="incomeExpenseChart"></canvas>
+            </div>
+
+            <!-- Category Breakdown -->
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: var(--dark-color);">Расходы по категориям</h3>
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <!-- Trend Chart -->
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: var(--dark-color);">Тренд по дням</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+
+            <!-- Account Distribution -->
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: var(--dark-color);">Распределение по счетам</h3>
+                <canvas id="accountChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Categories Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Топ категорий расходов</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table id="topCategoriesTable">
+                        <thead>
+                            <tr>
+                                <th>Категория</th>
+                                <th>Транзакций</th>
+                                <th>Сумма</th>
+                                <th>% от общих расходов</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center">Загрузка...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        let charts = {};
+
+        // Set default dates (last 30 days)
+        function setDefaultDates() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            
+            loadStatistics();
+        }
+
+        async function loadStatistics() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!startDate || !endDate) {
+                showError('Пожалуйста, выберите период');
+                return;
+            }
+
+            try {
+                const result = await api.getStatistics(startDate, endDate);
+                
+                if (result.success) {
+                    const stats = result.data;
+                    console.log('Statistics data:', stats); // Отладка
+                    displaySummary(stats);
+                    displayCharts(stats);
+                    displayTopCategories(stats.byCategory || {});
+                } else {
+                    showError(result.message || 'Ошибка загрузки статистики');
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+                showError('Ошибка загрузки статистики');
+            }
+        }
+
+        function displaySummary(stats) {
+            document.getElementById('totalIncome').textContent = formatCurrency(stats.totalIncome || 0);
+            document.getElementById('totalExpense').textContent = formatCurrency(stats.totalExpense || 0);
+            
+            const net = (stats.totalIncome || 0) - (stats.totalExpense || 0);
+            const netElement = document.getElementById('netAmount');
+            netElement.textContent = formatCurrency(Math.abs(net));
+            netElement.style.color = net >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+            
+            document.getElementById('transactionCount').textContent = stats.transactionCount || 0;
+        }
+
+        function displayCharts(stats) {
+            // Income vs Expense Bar Chart
+            createBarChart('incomeExpenseChart', {
+                labels: ['Доходы', 'Расходы'],
+                datasets: [{
+                    label: 'Сумма',
+                    data: [stats.totalIncome || 0, stats.totalExpense || 0],
+                    backgroundColor: ['rgba(39, 174, 96, 0.6)', 'rgba(231, 76, 60, 0.6)'],
+                    borderColor: ['rgb(39, 174, 96)', 'rgb(231, 76, 60)'],
+                    borderWidth: 2
+                }]
+            });
+
+            // Category Pie Chart (Expenses only)
+            const categories = stats.byCategory || {};
+            const expenseCategories = Object.entries(categories)
+                .filter(([cat, data]) => data.expense > 0);
+            
+            createPieChart('categoryChart', {
+                labels: expenseCategories.map(([cat]) => getCategoryLabel(cat)),
+                datasets: [{
+                    data: expenseCategories.map(([cat, data]) => data.expense),
+                    backgroundColor: [
+                        'rgba(231, 76, 60, 0.8)',
+                        'rgba(243, 156, 18, 0.8)',
+                        'rgba(52, 152, 219, 0.8)',
+                        'rgba(155, 89, 182, 0.8)',
+                        'rgba(26, 188, 156, 0.8)',
+                        'rgba(241, 196, 15, 0.8)',
+                        'rgba(149, 165, 166, 0.8)'
+                    ]
+                }]
+            });
+
+            // Daily Trend Line Chart
+            const dailyData = stats.byDate || {};
+            const sortedDates = Object.keys(dailyData).sort();
+            
+            console.log('Daily data:', dailyData);
+            console.log('Sorted dates:', sortedDates);
+            
+            createLineChart('trendChart', {
+                labels: sortedDates.length > 0 ? sortedDates.map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' });
+                }) : ['Нет данных'],
+                datasets: [
+                    {
+                        label: 'Доходы',
+                        data: sortedDates.length > 0 ? sortedDates.map(date => dailyData[date].income || 0) : [0],
+                        borderColor: 'rgb(39, 174, 96)',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Расходы',
+                        data: sortedDates.length > 0 ? sortedDates.map(date => dailyData[date].expense || 0) : [0],
+                        borderColor: 'rgb(231, 76, 60)',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            });
+
+            // Account Distribution Doughnut Chart
+            const accountData = stats.byAccount || {};
+            const accountEntries = Object.entries(accountData);
+            
+            createDoughnutChart('accountChart', {
+                labels: accountEntries.length > 0 ? accountEntries.map(([name]) => name) : ['Нет данных'],
+                datasets: [{
+                    data: accountEntries.length > 0 ? accountEntries.map(([name, data]) => Math.abs(data.total)) : [1],
+                    backgroundColor: [
+                        'rgba(74, 144, 226, 0.8)',
+                        'rgba(39, 174, 96, 0.8)',
+                        'rgba(243, 156, 18, 0.8)',
+                        'rgba(155, 89, 182, 0.8)',
+                        'rgba(52, 152, 219, 0.8)',
+                        'rgba(149, 165, 166, 0.3)'
+                    ]
+                }]
+            });
+        }
+
+        function displayTopCategories(categories) {
+            const tbody = document.querySelector('#topCategoriesTable tbody');
+            const expenseEntries = Object.entries(categories)
+                .filter(([cat, data]) => data.expense > 0)
+                .sort((a, b) => b[1].expense - a[1].expense);
+
+            if (expenseEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Нет данных о расходах</td></tr>';
+                return;
+            }
+
+            const totalExpense = expenseEntries.reduce((sum, [cat, data]) => sum + data.expense, 0);
+
+            tbody.innerHTML = expenseEntries.map(([category, data]) => {
+                const percentage = ((data.expense / totalExpense) * 100).toFixed(1);
+                return `
+                    <tr>
+                        <td><strong>${getCategoryLabel(category)}</strong></td>
+                        <td>${data.count}</td>
+                        <td style="color: var(--danger-color); font-weight: 600;">${formatCurrency(data.expense)}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="flex: 1; background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                    <div style="width: ${percentage}%; background: var(--danger-color); height: 100%;"></div>
+                                </div>
+                                <span style="min-width: 50px;">${percentage}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                'food': 'Еда',
+                'transport': 'Транспорт',
+                'entertainment': 'Развлечения',
+                'shopping': 'Покупки',
+                'health': 'Здоровье',
+                'education': 'Образование',
+                'bills': 'Счета',
+                'utilities': 'Коммунальные услуги',
+                'rent': 'Аренда',
+                'insurance': 'Страхование',
+                'taxes': 'Налоги',
+                'gifts': 'Подарки',
+                'subscriptions': 'Подписки',
+                'sports': 'Спорт',
+                'travel': 'Путешествия',
+                'cafe': 'Кафе и рестораны',
+                'salary': 'Зарплата',
+                'business': 'Бизнес',
+                'investment': 'Инвестиции',
+                'freelance': 'Фриланс',
+                'other': 'Другое'
+            };
+            return labels[category] || category;
+        }
+
+        // Chart creation helpers
+        function createBarChart(canvasId, data) {
+            destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function createPieChart(canvasId, data) {
+            destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'pie',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        function createLineChart(canvasId, data) {
+            destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function createDoughnutChart(canvasId, data) {
+            destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        function destroyChart(canvasId) {
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+        }
+
+        // Logout button handler
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.logout();
+        });
+
+        // Initialize
+        setDefaultDates();
+    </script>
+</body>
+</html>

@@ -5,18 +5,18 @@ const mongoose = require('mongoose');
 // 1. СОЗДАНИЕ ТРАНЗАКЦИИ (уже есть)
 exports.createTransaction = async (req, res) => {
   try {
-    const { accountId, amount, type, category, description, tags } = req.body;
+    const { accountId, amount, type, category, description, tags, date } = req.body;
     const userId = req.user.id;
 
     // Проверяем что аккаунт принадлежит юзеру
     const account = await Account.findOne({ _id: accountId, userId });
     if (!account) {
-      return res.status(404).json({ message: "Аккаунт не найден" });
+      return res.status(404).json({ success: false, message: "Аккаунт не найден" });
     }
 
     // Проверка баланса для расходов
     if (type === 'expense' && account.balance < amount) {
-      return res.status(400).json({ message: "Недостаточно средств на счете" });
+      return res.status(400).json({ success: false, message: "Недостаточно средств на счете" });
     }
 
     const newTransaction = new Transaction({
@@ -26,7 +26,8 @@ exports.createTransaction = async (req, res) => {
       type,
       category,
       description,
-      tags
+      tags,
+      date: date || new Date()
     });
 
     await newTransaction.save();
@@ -37,9 +38,12 @@ exports.createTransaction = async (req, res) => {
       $inc: { balance: change }
     });
 
-    res.status(201).json(newTransaction);
+    const populatedTransaction = await Transaction.findById(newTransaction._id).populate('accountId', 'name type');
+
+    res.status(201).json({ success: true, data: populatedTransaction });
   } catch (error) {
-    res.status(500).json({ message: "Ошибка при создании транзакции", error: error.message });
+    console.error('Create transaction error:', error);
+    res.status(500).json({ success: false, message: "Ошибка при создании транзакции", error: error.message });
   }
 };
 
@@ -47,13 +51,14 @@ exports.createTransaction = async (req, res) => {
 exports.getTransactions = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { type, category, startDate, endDate, limit = 50, skip = 0 } = req.query;
+    const { type, category, accountId, startDate, endDate, limit = 50, skip = 0 } = req.query;
 
     // Построение фильтра
     const filter = { userId };
 
     if (type) filter.type = type;
     if (category) filter.category = category;
+    if (accountId) filter.accountId = accountId;
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = new Date(startDate);
@@ -69,13 +74,15 @@ exports.getTransactions = async (req, res) => {
     const total = await Transaction.countDocuments(filter);
 
     res.json({
-      transactions,
+      success: true,
+      data: transactions,
       total,
       page: Math.floor(skip / limit) + 1,
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: "Ошибка при получении транзакций", error: error.message });
+    console.error('Get transactions error:', error);
+    res.status(500).json({ success: false, message: "Ошибка при получении транзакций", error: error.message });
   }
 };
 
@@ -103,12 +110,12 @@ exports.updateTransaction = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { amount, type, category, description, tags } = req.body;
+    const { amount, type, category, description, tags, date } = req.body;
 
     // Находим старую транзакцию
     const oldTransaction = await Transaction.findOne({ _id: id, userId });
     if (!oldTransaction) {
-      return res.status(404).json({ message: "Транзакция не найдена" });
+      return res.status(404).json({ success: false, message: "Транзакция не найдена" });
     }
 
     // Если изменилась сумма или тип, пересчитываем баланс
@@ -133,6 +140,7 @@ exports.updateTransaction = async (req, res) => {
     if (category !== undefined) updateData.category = category;
     if (description !== undefined) updateData.description = description;
     if (tags !== undefined) updateData.tags = tags;
+    if (date !== undefined) updateData.date = date;
 
     const updatedTransaction = await Transaction.findByIdAndUpdate(
       id,
@@ -140,9 +148,10 @@ exports.updateTransaction = async (req, res) => {
       { new: true, runValidators: true }
     ).populate('accountId', 'name type balance');
 
-    res.json(updatedTransaction);
+    res.json({ success: true, data: updatedTransaction });
   } catch (error) {
-    res.status(500).json({ message: "Ошибка при обновлении транзакции", error: error.message });
+    console.error('Update transaction error:', error);
+    res.status(500).json({ success: false, message: "Ошибка при обновлении транзакции", error: error.message });
   }
 };
 
@@ -154,7 +163,7 @@ exports.deleteTransaction = async (req, res) => {
 
     const transaction = await Transaction.findOne({ _id: id, userId });
     if (!transaction) {
-      return res.status(404).json({ message: "Транзакция не найдена" });
+      return res.status(404).json({ success: false, message: "Транзакция не найдена" });
     }
 
     // Возвращаем баланс
@@ -165,9 +174,10 @@ exports.deleteTransaction = async (req, res) => {
 
     await Transaction.findByIdAndDelete(id);
 
-    res.json({ message: "Транзакция удалена", deletedTransaction: transaction });
+    res.json({ success: true, message: "Транзакция удалена" });
   } catch (error) {
-    res.status(500).json({ message: "Ошибка при удалении транзакции", error: error.message });
+    console.error('Delete transaction error:', error);
+    res.status(500).json({ success: false, message: "Ошибка при удалении транзакции", error: error.message });
   }
 };
 
@@ -309,5 +319,97 @@ exports.removeTag = async (req, res) => {
     res.json(transaction);
   } catch (error) {
     res.status(500).json({ message: "Ошибка при удалении тега", error: error.message });
+  }
+};
+
+// 10. ПОЛУЧИТЬ ДЕТАЛЬНУЮ СТАТИСТИКУ ЗА ПЕРИОД
+exports.getStatistics = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "startDate и endDate обязательны" });
+    }
+
+    const matchFilter = {
+      userId: new mongoose.Types.ObjectId(userId),
+      date: {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      }
+    };
+
+    // Получаем все транзакции за период
+    const transactions = await Transaction.find(matchFilter);
+
+    // Общие суммы
+    const totalIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalExpense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Статистика по категориям
+    const byCategory = {};
+    transactions.forEach(t => {
+      if (!byCategory[t.category]) {
+        byCategory[t.category] = { income: 0, expense: 0, count: 0 };
+      }
+      if (t.type === 'income') {
+        byCategory[t.category].income += t.amount;
+      } else {
+        byCategory[t.category].expense += t.amount;
+      }
+      byCategory[t.category].count++;
+    });
+
+    // Статистика по счетам
+    const transactionsWithAccount = await Transaction.find(matchFilter).populate('accountId', 'name');
+    const byAccount = {};
+    transactionsWithAccount.forEach(t => {
+      const accountName = t.accountId?.name || 'Unknown';
+      if (!byAccount[accountName]) {
+        byAccount[accountName] = { income: 0, expense: 0, total: 0 };
+      }
+      if (t.type === 'income') {
+        byAccount[accountName].income += t.amount;
+        byAccount[accountName].total += t.amount;
+      } else {
+        byAccount[accountName].expense += t.amount;
+        byAccount[accountName].total -= t.amount;
+      }
+    });
+
+    // Статистика по датам
+    const byDate = {};
+    transactions.forEach(t => {
+      const dateKey = t.date.toISOString().split('T')[0];
+      if (!byDate[dateKey]) {
+        byDate[dateKey] = { income: 0, expense: 0 };
+      }
+      if (t.type === 'income') {
+        byDate[dateKey].income += t.amount;
+      } else {
+        byDate[dateKey].expense += t.amount;
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalIncome,
+        totalExpense,
+        transactionCount: transactions.length,
+        byCategory,
+        byAccount,
+        byDate
+      }
+    });
+  } catch (error) {
+    console.error('Get statistics error:', error);
+    res.status(500).json({ success: false, message: "Ошибка при получении статистики", error: error.message });
   }
 };

@@ -8,7 +8,7 @@ exports.createAccount = async (req, res) => {
     
     // Валидация
     if (!name || !type) {
-      return res.status(400).json({ error: "Name и type обязательны" });
+      return res.status(400).json({ success: false, message: "Name и type обязательны" });
     }
 
     const account = new Account({
@@ -19,9 +19,10 @@ exports.createAccount = async (req, res) => {
     });
     
     await account.save();
-    res.status(201).json(account);
+    res.status(201).json({ success: true, data: account });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Create account error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -29,9 +30,10 @@ exports.createAccount = async (req, res) => {
 exports.getAccounts = async (req, res) => {
   try {
     const accounts = await Account.find({ userId: req.user.id }).sort({ createdAt: -1 });
-    res.json(accounts);
+    res.json({ success: true, data: accounts });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Get accounts error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -66,18 +68,19 @@ exports.updateAccount = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { name, type } = req.body;
+    const { name, type, balance } = req.body;
 
     // Проверяем существование аккаунта
     const account = await Account.findOne({ _id: id, userId });
     if (!account) {
-      return res.status(404).json({ message: "Аккаунт не найден" });
+      return res.status(404).json({ success: false, message: "Аккаунт не найден" });
     }
 
     // Формируем объект обновления
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (type !== undefined) updateData.type = type;
+    if (balance !== undefined) updateData.balance = balance;
 
     // Обновляем с использованием $set
     const updatedAccount = await Account.findByIdAndUpdate(
@@ -86,9 +89,10 @@ exports.updateAccount = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    res.json(updatedAccount);
+    res.json({ success: true, data: updatedAccount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Update account error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -101,7 +105,7 @@ exports.deleteAccount = async (req, res) => {
     // Проверяем существование аккаунта
     const account = await Account.findOne({ _id: id, userId });
     if (!account) {
-      return res.status(404).json({ message: "Аккаунт не найден" });
+      return res.status(404).json({ success: false, message: "Аккаунт не найден" });
     }
 
     // Удаляем все транзакции, связанные с этим аккаунтом
@@ -111,12 +115,13 @@ exports.deleteAccount = async (req, res) => {
     await Account.findByIdAndDelete(id);
 
     res.json({
+      success: true,
       message: "Аккаунт удален",
-      deletedAccount: account,
       deletedTransactionsCount: deletedTransactions.deletedCount
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Delete account error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 

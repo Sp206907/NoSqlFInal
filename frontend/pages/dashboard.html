@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PennyWise - Панель управления</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            PennyWise
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="dashboard.html" class="nav-link active">Главная</a></li>
+            <li><a href="accounts.html" class="nav-link">Счета</a></li>
+            <li><a href="transactions.html" class="nav-link">Транзакции</a></li>
+            <li><a href="statistics.html" class="nav-link">Статистика</a></li>
+            <li><span id="userName" style="color: var(--dark-color); font-weight: 600;">Пользователь</span></li>
+            <li><a href="#" id="logoutBtn" class="nav-link">Выход</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1 class="mb-3" style="color: white;">Добро пожаловать, <span id="welcomeUser"></span>!</h1>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Общий баланс</h3>
+                <div class="value" id="totalBalance">₽0.00</div>
+            </div>
+            <div class="stat-card income">
+                <h3>Доходы</h3>
+                <div class="value" id="totalIncome">₽0.00</div>
+            </div>
+            <div class="stat-card expense">
+                <h3>Расходы</h3>
+                <div class="value" id="totalExpense">₽0.00</div>
+            </div>
+            <div class="stat-card">
+                <h3>Счетов</h3>
+                <div class="value" id="accountsCount">0</div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Последние транзакции</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table id="recentTransactions">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Описание</th>
+                                <th>Категория</th>
+                                <th>Счет</th>
+                                <th>Сумма</th>
+                                <th>Тип</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center">Загрузка...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts Overview -->
+        <div class="card">
+            <div class="card-header d-flex justify-between align-center">
+                <h2>Мои счета</h2>
+                <a href="accounts.html" class="btn btn-primary btn-sm">Управление счетами</a>
+            </div>
+            <div class="card-body">
+                <div id="accountsList" class="stats-grid">
+                    <div class="text-center">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                // Get user info
+                const user = auth.getCurrentUser();
+                document.getElementById('welcomeUser').textContent = user.username;
+
+                // Load accounts
+                const accountsResult = await api.getAccounts();
+                if (accountsResult.success) {
+                    const accounts = accountsResult.data;
+                    
+                    // Calculate total balance
+                    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+                    document.getElementById('totalBalance').textContent = formatCurrency(totalBalance);
+                    document.getElementById('accountsCount').textContent = accounts.length;
+
+                    // Display accounts
+                    displayAccounts(accounts);
+                }
+
+                // Load recent transactions
+                const transactionsResult = await api.getTransactions({ limit: 10 });
+                if (transactionsResult.success) {
+                    const transactions = transactionsResult.data;
+                    
+                    // Calculate income and expenses
+                    const income = transactions
+                        .filter(t => t.type === 'income')
+                        .reduce((sum, t) => sum + t.amount, 0);
+                    const expense = transactions
+                        .filter(t => t.type === 'expense')
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    document.getElementById('totalIncome').textContent = formatCurrency(income);
+                    document.getElementById('totalExpense').textContent = formatCurrency(expense);
+
+                    // Display transactions
+                    displayTransactions(transactions);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('Ошибка загрузки данных');
+            }
+        }
+
+        function displayAccounts(accounts) {
+            const accountsList = document.getElementById('accountsList');
+            
+            if (accounts.length === 0) {
+                accountsList.innerHTML = '<p class="text-center">У вас пока нет счетов. <a href="accounts.html">Создать счет</a></p>';
+                return;
+            }
+
+            accountsList.innerHTML = accounts.map(account => `
+                <div class="stat-card">
+                    <h3>${account.name}</h3>
+                    <div class="value">${formatCurrency(account.balance)}</div>
+                    <p style="color: #7f8c8d; margin-top: 0.5rem;">${account.type}</p>
+                </div>
+            `).join('');
+        }
+
+        function displayTransactions(transactions) {
+            const tbody = document.querySelector('#recentTransactions tbody');
+            
+            if (transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Нет транзакций</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = transactions.slice(0, 5).map(transaction => `
+                <tr>
+                    <td>${formatDate(transaction.date)}</td>
+                    <td>${transaction.description}</td>
+                    <td>${transaction.category}</td>
+                    <td>${transaction.accountId?.name || 'N/A'}</td>
+                    <td style="font-weight: 600; color: ${transaction.type === 'income' ? 'var(--success-color)' : 'var(--danger-color)'}">
+                        ${transaction.type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)}
+                    </td>
+                    <td>
+                        <span class="badge badge-${transaction.type === 'income' ? 'success' : 'danger'}">
+                            ${transaction.type === 'income' ? 'Доход' : 'Расход'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Logout button handler
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.logout();
+        });
+
+        // Load data on page load
+        loadDashboard();
+    </script>
+</body>
+</html>
