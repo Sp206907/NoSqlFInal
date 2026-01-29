@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PennyWise - Счета</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            PennyWise
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="dashboard.html" class="nav-link">Главная</a></li>
+            <li><a href="accounts.html" class="nav-link active">Счета</a></li>
+            <li><a href="transactions.html" class="nav-link">Транзакции</a></li>
+            <li><a href="statistics.html" class="nav-link">Статистика</a></li>
+            <li><span id="userName" style="color: var(--dark-color); font-weight: 600;">Пользователь</span></li>
+            <li><a href="#" id="logoutBtn" class="nav-link">Выход</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="d-flex justify-between align-center mb-3">
+            <h1 style="color: white;">Мои счета</h1>
+            <button class="btn btn-success" onclick="openAddAccountModal()">+ Добавить счет</button>
+        </div>
+
+        <!-- Accounts Grid -->
+        <div id="accountsGrid" class="stats-grid">
+            <div class="text-center" style="color: white;">Загрузка...</div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Account Modal -->
+    <div id="accountModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Добавить счет</h2>
+                <button class="close" onclick="closeAccountModal()">&times;</button>
+            </div>
+            <form id="accountForm">
+                <input type="hidden" id="accountId">
+                <div class="form-group">
+                    <label for="accountName">Название счета</label>
+                    <input type="text" id="accountName" class="form-control" placeholder="Например: Основной счет" required>
+                </div>
+                <div class="form-group">
+                    <label for="accountType">Тип счета</label>
+                    <select id="accountType" class="form-select" required>
+                        <option value="checking">Текущий счет</option>
+                        <option value="savings">Сберегательный</option>
+                        <option value="credit">Кредитная карта</option>
+                        <option value="cash">Наличные</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="accountBalance">Начальный баланс</label>
+                    <input type="number" id="accountBalance" class="form-control" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAccountModal()">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        let accounts = [];
+
+        // Load accounts
+        async function loadAccounts() {
+            try {
+                const result = await api.getAccounts();
+                if (result.success) {
+                    accounts = result.data;
+                    displayAccounts();
+                }
+            } catch (error) {
+                console.error('Error loading accounts:', error);
+                showError('Ошибка загрузки счетов');
+            }
+        }
+
+        function displayAccounts() {
+            const grid = document.getElementById('accountsGrid');
+            
+            if (accounts.length === 0) {
+                grid.innerHTML = '<div class="card" style="grid-column: 1/-1;"><p class="text-center">У вас пока нет счетов. Создайте первый счет!</p></div>';
+                return;
+            }
+
+            grid.innerHTML = accounts.map(account => `
+                <div class="card">
+                    <h3 style="color: var(--dark-color); margin-bottom: 0.5rem;">${account.name}</h3>
+                    <div class="value" style="color: ${account.balance >= 0 ? 'var(--success-color)' : 'var(--danger-color)'}; margin-bottom: 0.5rem;">
+                        ${formatCurrency(account.balance)}
+                    </div>
+                    <p style="color: #7f8c8d; margin-bottom: 1rem;">${getAccountTypeLabel(account.type)}</p>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-primary btn-sm" onclick="editAccount('${account._id}')">Редактировать</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAccount('${account._id}')">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getAccountTypeLabel(type) {
+            const labels = {
+                'checking': 'Текущий счет',
+                'savings': 'Сберегательный',
+                'credit': 'Кредитная карта',
+                'cash': 'Наличные'
+            };
+            return labels[type] || type;
+        }
+
+        function openAddAccountModal() {
+            document.getElementById('modalTitle').textContent = 'Добавить счет';
+            document.getElementById('accountForm').reset();
+            document.getElementById('accountId').value = '';
+            document.getElementById('accountModal').classList.add('show');
+        }
+
+        function closeAccountModal() {
+            document.getElementById('accountModal').classList.remove('show');
+        }
+
+        function editAccount(id) {
+            const account = accounts.find(a => a._id === id);
+            if (!account) return;
+
+            document.getElementById('modalTitle').textContent = 'Редактировать счет';
+            document.getElementById('accountId').value = account._id;
+            document.getElementById('accountName').value = account.name;
+            document.getElementById('accountType').value = account.type;
+            document.getElementById('accountBalance').value = account.balance;
+            document.getElementById('accountModal').classList.add('show');
+        }
+
+        async function deleteAccount(id) {
+            if (!confirm('Вы уверены, что хотите удалить этот счет?')) return;
+
+            try {
+                const result = await api.deleteAccount(id);
+                if (result.success) {
+                    showSuccess('Счет удален');
+                    loadAccounts();
+                } else {
+                    showError(result.message || 'Ошибка удаления счета');
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                showError('Ошибка удаления счета');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('accountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('accountId').value;
+            const name = document.getElementById('accountName').value;
+            const type = document.getElementById('accountType').value;
+            const balance = parseFloat(document.getElementById('accountBalance').value);
+
+            try {
+                let result;
+                if (id) {
+                    // Update existing account
+                    result = await api.updateAccount(id, { name, type, balance });
+                } else {
+                    // Create new account
+                    result = await api.createAccount(name, type, balance);
+                }
+
+                if (result.success) {
+                    showSuccess(id ? 'Счет обновлен' : 'Счет создан');
+                    closeAccountModal();
+                    loadAccounts();
+                } else {
+                    showError(result.message || 'Ошибка сохранения счета');
+                }
+            } catch (error) {
+                console.error('Error saving account:', error);
+                showError('Ошибка сохранения счета');
+            }
+        });
+
+        // Close modal on background click
+        document.getElementById('accountModal').addEventListener('click', (e) => {
+            if (e.target.id === 'accountModal') {
+                closeAccountModal();
+            }
+        });
+
+        // Logout button handler
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.logout();
+        });
+
+        // Load accounts on page load
+        loadAccounts();
+    </script>
+</body>
+</html>

@@ -9,13 +9,15 @@ const {
   getStatsByCategory,
   getMonthlyStats,
   addTag,
-  removeTag
+  removeTag,
+  getStatistics
 } = require('../controllers/transactionController');
 const auth = require('../middleware/auth');
 
 // CRUD операции
 router.post('/', auth, createTransaction);                    // Создать транзакцию
 router.get('/', auth, getTransactions);                       // Получить все транзакции (с фильтрами)
+router.get('/statistics', auth, getStatistics);               // Детальная статистика за период
 router.get('/stats/category', auth, getStatsByCategory);      // Статистика по категориям
 router.get('/stats/monthly', auth, getMonthlyStats);          // Статистика по месяцам
 router.get('/:id', auth, getTransactionById);                 // Получить одну транзакцию
